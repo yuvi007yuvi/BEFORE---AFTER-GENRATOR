@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Before and After Image PDF Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            overflow: auto; /* Make the page scrollable */
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            overflow-y: auto; /* Ensure content within the container can scroll */
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .upload-section, .location-section, .qr-id-section {
+            margin-bottom: 20px;
+        }
+        .upload-section label, .location-section label, .qr-id-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        #generatePdfButton {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #generatePdfButton:hover {
+            background-color: #218838;
+        }
+        .image-preview, .pdf-preview {
+            margin-top: 20px;
+        }
+        .image-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+        iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Before and After Image PDF Generator</h1>
+        <div class="upload-section">
+            <label for="beforeImage">Before Image:</label>
+            <input type="file" id="beforeImage" accept="image/*">
+            <label for="afterImage">After Image:</label>
+            <input type="file" id="afterImage" accept="image/*">
+        </div>
+        <div class="location-section">
+            <label for="locationName">Location Name:</label>
+            <input type="text" id="locationName" placeholder="Enter location name">
+        </div>
+        <div class="qr-id-section">
+            <label for="qrId">QR ID:</label>
+            <input type="text" id="qrId" placeholder="Enter QR ID">
+        </div>
+        <button id="generatePdfButton">Generate and Preview PDF</button>
+        <div id="imagePreview" class="image-preview"></div>
+        <div id="pdfPreview" class="pdf-preview"></div>
+    </div>
+    
+    <!-- Include jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <!-- Firebase SDK (non-modular version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC37mEVGVq5Z-PzVpPlo33jIqCJnih2kk8",
+            authDomain: "before-after-53505.firebaseapp.com",
+            projectId: "before-after-53505",
+            storageBucket: "before-after-53505.appspot.com",
+            messagingSenderId: "385196348298",
+            appId: "1:385196348298:web:dd9ee4cd669ac6cc7fae73",
+            measurementId: "G-MCLJC299EM"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        const db = firebase.firestore();
+
+        document.getElementById('beforeImage').addEventListener('change', previewImage);
+        document.getElementById('afterImage').addEventListener('change', previewImage);
+        document.getElementById('generatePdfButton').addEventListener('click', generateAndUploadPDF);
+
+        function previewImage(event) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById('imagePreview');
+            previewContainer.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                const imgElement = document.createElement('img');
+                imgElement.src = URL.createObjectURL(file);
+                previewContainer.appendChild(imgElement);
+            });
+        }
+
+        function generateAndUploadPDF() {
+            const locationName = document.getElementById('locationName').value;
+            const qrId = document.getElementById('qrId').value;
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('landscape');
+            const beforeImageFile = document.getElementById('beforeImage').files[0];
+            const afterImageFile = document.getElementById('afterImage').files[0];
+
+            if (!beforeImageFile || !afterImageFile) {
+                alert("Please upload both before and after images.");
+                return;
+            }
+
+            const reader1 = new FileReader();
+            const reader2 = new FileReader();
+
+            reader1.onload = function (event) {
+                const beforeImageData = event.target.result;
+                reader2.onload = function (event) {
+                    const afterImageData = event.target.result;
+
+                    pdf.setFontSize(18);
+                    pdf.text(10, 20, 'Before');
+                    pdf.text(150, 20, 'After');
+
+                    pdf.addImage(beforeImageData, 'JPEG', 10, 30, 130, 90);
+                    pdf.addImage(afterImageData, 'JPEG', 150, 30, 130, 90);
+
+                    pdf.setFontSize(14);
+                    pdf.text(10, 130, `Location: ${locationName}`);
+                    pdf.text(10, 140, `QR ID: ${qrId}`);
+
+                    // Convert the PDF to a Blob and preview it
+                    const pdfBlob = pdf.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    document.getElementById('pdfPreview').innerHTML = `<iframe src="${pdfUrl}" frameborder="0"></iframe>`;
+
+                    // Generate filename with location and current date/time
+                    const now = new Date();
+                    const dateString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    const timeString = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+                    const filename = `${locationName}_${dateString}_${timeString}.pdf`;
+
+                    // Upload to Firebase Storage
+                    const storageRef = storage.ref(`pdfs/${filename}`);
+                    storageRef.put(pdfBlob).then(() => {
+                        storageRef.getDownloadURL().then(url => {
+                            // Store metadata in Firestore
+                            db.collection('pdfs').add({
+                                locationName: locationName,
+                                date: now,
+                                url: url,
+                                qrId: qrId // Add QR ID to Firestore
+                            }).then(() => {
+                                alert('PDF uploaded successfully and metadata stored in Firestore.');
+                            }).catch(error => {
+                                console.error('Error storing metadata:', error);
+                            });
+                        }).catch(error => {
+                            console.error('Error getting download URL:', error);
+                        });
+                    }).catch(error => {
+                        console.error('Error uploading PDF:', error);
+                    });
+                };
+                reader2.readAsDataURL(afterImageFile);
+            };
+            reader1.readAsDataURL(beforeImageFile);
+        }
+    </script>
+</body>
+</html>

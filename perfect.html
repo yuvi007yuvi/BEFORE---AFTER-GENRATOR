@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Before and After Image PDF Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .upload-section, .location-section {
+            margin-bottom: 20px;
+        }
+        .upload-section label, .location-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        #generatePdfButton {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #generatePdfButton:hover {
+            background-color: #218838;
+        }
+        .image-preview {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .image-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Before and After Image PDF Generator</h1>
+        <div class="upload-section">
+            <label for="beforeImage">Before Image:</label>
+            <input type="file" id="beforeImage" accept="image/*">
+            <label for="afterImage">After Image:</label>
+            <input type="file" id="afterImage" accept="image/*">
+        </div>
+        <div class="location-section">
+            <label for="locationName">Location Name:</label>
+            <input type="text" id="locationName" placeholder="Enter location name">
+        </div>
+        <button id="generatePdfButton">Generate PDF</button>
+        <div id="imagePreview" class="image-preview"></div>
+    </div>
+    
+    <!-- Include jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+    <script>
+        document.getElementById('beforeImage').addEventListener('change', previewImage);
+        document.getElementById('afterImage').addEventListener('change', previewImage);
+        document.getElementById('generatePdfButton').addEventListener('click', generatePDF);
+
+        function previewImage(event) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById('imagePreview');
+            previewContainer.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                const imgElement = document.createElement('img');
+                imgElement.src = URL.createObjectURL(file);
+                previewContainer.appendChild(imgElement);
+            });
+        }
+
+        function generatePDF() {
+            const locationName = document.getElementById('locationName').value;
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('landscape');
+            const beforeImageFile = document.getElementById('beforeImage').files[0];
+            const afterImageFile = document.getElementById('afterImage').files[0];
+
+            if (!beforeImageFile || !afterImageFile) {
+                alert("Please upload both before and after images.");
+                return;
+            }
+
+            const reader1 = new FileReader();
+            const reader2 = new FileReader();
+
+            reader1.onload = function (event) {
+                const beforeImageData = event.target.result;
+                reader2.onload = function (event) {
+                    const afterImageData = event.target.result;
+
+                    pdf.setFontSize(18);
+                    pdf.text(10, 20, 'Before');
+                    pdf.text(150, 20, 'After');
+
+                    pdf.addImage(beforeImageData, 'JPEG', 10, 30, 130, 90);
+                    pdf.addImage(afterImageData, 'JPEG', 150, 30, 130, 90);
+
+                    pdf.setFontSize(14);
+                    pdf.text(10, 130, `Location: ${locationName}`);
+
+                    pdf.save('Before_After.pdf');
+                };
+                reader2.readAsDataURL(afterImageFile);
+            };
+            reader1.readAsDataURL(beforeImageFile);
+        }
+    </script>
+</body>
+</html>
